@@ -1,10 +1,9 @@
 name: Fork Sync
 
-# 将权限声明移至最顶层，确保全局生效并符合最新语法标准
+# 恢复合法的权限声明
 permissions:
   contents: write
   actions: write
-  workflows: write
 
 on:
     schedule:
@@ -21,14 +20,15 @@ jobs:
             - name: Checkout target repo
               uses: actions/checkout@v4
               with:
-                # 必须开启 fetch-depth: 0 才能处理复杂的合并逻辑
                 fetch-depth: 0
-                token: ${{ secrets.GITHUB_TOKEN }}
+                # 关键点：使用你创建的 PAT 替换默认 token，这样才有权同步工作流文件
+                token: ${{ secrets.SYNC_PAT }}
 
             - name: Sync Upstream
               uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
               with:
-                  target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+                  # 这里的 token 也要同步更换
+                  target_repo_token: ${{ secrets.SYNC_PAT }}
                   upstream_sync_repo: huangxd-/danmu_api
                   upstream_sync_branch: main
                   target_sync_branch: main
@@ -41,9 +41,6 @@ jobs:
             - name: Check for Failure
               if: failure()
               run: |
-                  echo "[Error] Sync failed. This might be due to:"
-                  echo "1. Changes in the upstream workflow file (Fixed by adding workflows permission)"
-                  echo "2. Merge conflicts that need manual resolution"
-                  echo "3. Network issues"
-                  echo "Please check the logs and consider manual sync if needed."
+                  echo "[Error] Sync failed."
+                  echo "如果依然报错，请确保 SYNC_PAT 具有 'workflow' 权限且已正确添加到 Repository Secrets 中。"
                   exit 1
